@@ -18,7 +18,7 @@
             "url": "stun:stun.l.google.com:19302"
         }]
     };
-    var socket = io.connect('ws://localhost:3000'); // 建立webscoket链接
+    var socket = io.connect('ws://'+location.host); // 建立webscoket链接
     var box = document.getElementById('video-box');
     // 兼容各浏览器webrtc
     var PeerConnection = (window.PeerConnection || window.webkitPeerConnection00 || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
