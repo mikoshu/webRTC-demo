@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>webrtc test</title>
+    <style>
+        video{
+            width:300px;
+        }
+    </style>
 </head>
 <body>
     <h3>这里是测试</h3>
     <div id="video-box">
         <video src="" id="video"></video>
+        <video src="" id="video2"></video>
+
     </div>
     
 <script src="js/socket.io.js"></script>
@@ -30,8 +37,16 @@
 
     //创建PeerConnection实例
     var pc = new PeerConnection(iceServer);
+    //var pc = new PeerConnection(null);
+
+    socket.on('connected',function(data){
+        socket.id = data.id;
+        console.log(socket.id)
+    })
+
     //发送ICE候选到其他客户端
     pc.onicecandidate = function(event){
+        console.log(event)
         socket.send(JSON.stringify({
             "event": "__ice_candidate",
             "data": {
@@ -41,10 +56,8 @@
     };
     //如果检测到媒体流连接到本地，将其绑定到一个video标签上输出
     pc.onaddstream = function(event){
-        var newVideo = document.createElement("video");
-        newVideo.id = 'video2';
+        var newVideo = document.getElementById("video2");
         newVideo.src = URL.createObjectURL(event.stream);
-        box.appendChild(newVideo);
         newVideo.play();
     };
     //获取本地的媒体流，并绑定到一个video标签上输出，并且发送这个媒体流给其他客户端
@@ -56,9 +69,9 @@
         var sendOfferFn = function(desc){
                 pc.setLocalDescription(desc);
                 console.log(desc)
-
                 socket.emit('__offer',{
                     data: {
+                        id: socket.id,
                         sdp: desc
                     }
                 })
@@ -74,6 +87,7 @@
                 pc.setLocalDescription(desc);
                 socket.emit('__answer',{
                     data: {
+                        id: socket.id,
                         sdp: desc
                     }
                 })
@@ -91,11 +105,25 @@
         //向PeerConnection中加入需要发送的流
         pc.addStream(stream);
         //如果是发送方则发送一个offer信令，否则发送一个answer信令
-        if(true){
+        //if(true){
             pc.createOffer(sendOfferFn,function(err){console.log(err)});
-        } else {
-            pc.createAnswer(sendAnswerFn,function(err){console.log(err)});
-        }
+            socket.on('answer',function(data){
+                if(data.data.id != socket.id){
+                    console.log(data)
+                    pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp))
+                    .then(function(resp){
+                        pc.createAnswer(sendAnswerFn,function(err){console.log(err)});
+                    })
+                    .catch(function(err){
+                        console.log(err)
+                    })
+                }
+                
+                
+            })
+        //} else {
+            
+        //}
     }, function(error){
         console.log(error)
         //处理媒体流创建失败错误
@@ -111,9 +139,11 @@
         }
     };
 
-    socket.on('answer',function(data){
+    socket.on('offer',function(data){
         console.log(data.data.sdp)
-        pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
+        if(data.data.id != socket.id){
+            pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
+        }
     })
 
 

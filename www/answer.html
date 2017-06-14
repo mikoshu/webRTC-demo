@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>webrtc test</title>
+    <style>
+        video{
+            width:300px;
+        }
+    </style>
 </head>
 <body>
     <h3>这里是测试</h3>
     <div id="video-box">
         <video src="" id="video"></video>
+        <video src="" id="video2" autoplay="autoplay" ></video>
     </div>
     
 <script src="js/socket.io.js"></script>
@@ -41,11 +47,10 @@
     };
     //如果检测到媒体流连接到本地，将其绑定到一个video标签上输出
     pc.onaddstream = function(event){
-        var newVideo = document.createElement("video");
-        newVideo.id = 'video2';
+        var newVideo = document.getElementById("video2");
         newVideo.src = URL.createObjectURL(event.stream);
-        box.appendChild(newVideo);
         newVideo.play();
+        pc.addStream(event.stream);
     };
     //获取本地的媒体流，并绑定到一个video标签上输出，并且发送这个媒体流给其他客户端
     getUserMedia.call(navigator, {
@@ -61,6 +66,7 @@
             },
             sendAnswerFn = function(desc){
                 pc.setLocalDescription(desc);
+                console.log(desc)
                 socket.emit('__answer',{
                     data: {
                         sdp: desc
@@ -94,6 +100,11 @@
     };
 
     socket.on('answer',function(data){
+        console.log(data)
+        pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
+    })
+
+    socket.on('offer',function(data){
         pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
     })
 

@@ -5,14 +5,25 @@ var io = require('socket.io')(server);
 var path = require('path');
 
 app.use(express.static(path.join(__dirname, 'www')));
+var connections = []; // 记录所有websocket链接
 
 io.on('connection', function(socket){
-    //console.log('connected')
-    io.emit('connected','connected');
+	var obj = {}
+	obj.name = socket.id;
+	obj.socket = socket;
+	connections.push(obj);
+    console.log(socket.id)
+    socket.emit('connected',{
+    	id: socket.id
+    })
 
 
     socket.on('__offer',function(data){
         io.emit('answer',data);
+    }) 
+
+    socket.on('__answer',function(data){
+        io.emit('offer',data);
     }) 
 
 });
