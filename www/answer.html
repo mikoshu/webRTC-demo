@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>webrtc test</title>
+</head>
+<body>
+    <h3>这里是测试</h3>
+    <div id="video-box">
+        <video src="" id="video"></video>
+    </div>
+    
+<script src="js/socket.io.js"></script>
+<script>
+    //使用Google的stun服务器
+    var iceServer = {
+        "iceServers": [{
+            "url": "stun:stun.l.google.com:19302"
+        }]
+    };
+    var socket = io.connect('ws://localhost:3000'); // 建立webscoket链接
+    var box = document.getElementById('video-box');
+    // 兼容各浏览器webrtc
+    var PeerConnection = (window.PeerConnection || window.webkitPeerConnection00 || window.webkitRTCPeerConnection || window.mozRTCPeerConnection);
+    var URL = (window.URL || window.webkitURL || window.msURL || window.oURL);
+    var getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+    var nativeRTCIceCandidate = (window.mozRTCIceCandidate || window.RTCIceCandidate);
+    var nativeRTCSessionDescription = (window.mozRTCSessionDescription || window.RTCSessionDescription); // order is very important: "RTCSessionDescription" defined in Nighly but useless
+    var moz = !!navigator.mozGetUserMedia;
+
+    //创建PeerConnection实例
+    var pc = new PeerConnection(iceServer);
+    //发送ICE候选到其他客户端
+    pc.onicecandidate = function(event){
+        socket.send(JSON.stringify({
+            "event": "__ice_candidate",
+            "data": {
+                "candidate": event.candidate
+            }
+        }));
+    };
+    //如果检测到媒体流连接到本地，将其绑定到一个video标签上输出
+    pc.onaddstream = function(event){
+        var newVideo = document.createElement("video");
+        newVideo.id = 'video2';
+        newVideo.src = URL.createObjectURL(event.stream);
+        box.appendChild(newVideo);
+        newVideo.play();
+    };
+    //获取本地的媒体流，并绑定到一个video标签上输出，并且发送这个媒体流给其他客户端
+    getUserMedia.call(navigator, {
+        "audio": true,
+        "video": true
+    }, function(stream){
+        //发送offer和answer的函数，发送本地session描述
+        var sendOfferFn = function(desc){
+                pc.setLocalDescription(desc);
+                socket.emit('__offer',{
+                    "data": desc
+                })
+            },
+            sendAnswerFn = function(desc){
+                pc.setLocalDescription(desc);
+                socket.emit('__answer',{
+                    data: {
+                        sdp: desc
+                    }
+                })
+            };
+        //绑定本地媒体流到video标签用于输出
+        var myVideo = document.getElementById('video');
+        myVideo.src = URL.createObjectURL(stream);
+        myVideo.play();
+        //向PeerConnection中加入需要发送的流
+        pc.addStream(stream);
+        //如果是发送方则发送一个offer信令，否则发送一个answer信令
+        if(false){
+            pc.createOffer(sendOfferFn,function(err){console.log(err)});
+        } else {
+            pc.createAnswer(sendAnswerFn,function(err){console.log(err)});
+        }
+    }, function(error){
+        //处理媒体流创建失败错误
+    });
+    //处理到来的信令
+    socket.onmessage = function(event){
+        var json = JSON.parse(event.data);
+        //如果是一个ICE的候选，则将其加入到PeerConnection中，否则设定对方的session描述为传递过来的描述
+        if( json.event === "__ice_candidate" ){
+            pc.addIceCandidate(new RTCIceCandidate(json.data.candidate));
+        } else {
+             pc.setRemoteDescription(new RTCSessionDescription(json.data.sdp));
+        }
+    };
+
+    socket.on('answer',function(data){
+        pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
+    })
+
+
+
+</script>
+
+
+</body>
+</html>
