@@ -67,7 +67,7 @@
         //发送offer和answer的函数，发送本地session描述
         var sendOfferFn = function(desc){
                 pc.setLocalDescription(desc);
-                console.log(desc)
+                console.log('offer')
                 socket.emit('__offer',{
                     data: {
                         id: socket.id,
@@ -124,6 +124,18 @@
         //} else {
             
         //}
+        socket.on('getDesc',function(data){
+            console.log(data)
+            data.map(function(val,i){
+                if(val.data.id != socket.id){
+                    pc.setRemoteDescription(new RTCSessionDescription(val.data.sdp))
+                    .then(function(resp){
+                        pc.createAnswer(sendAnswerFn,function(err){console.log(err)});
+                    })
+                }
+            })
+        })
+
     }, function(error){
         console.log(error)
         //处理媒体流创建失败错误

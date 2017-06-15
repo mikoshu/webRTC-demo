@@ -13,18 +13,21 @@ io.on('connection', function(socket){
 	obj.name = socket.id;
 	obj.socket = socket;
 	connections.push(obj);
-    console.log(socket.id)
+
     socket.emit('connected',{
     	id: socket.id
     });
 
 
-
+    if(desc.length > 0){
+        console.log('getdesc')
+        socket.emit('getDesc',desc);
+    }
     
 
 
     socket.on('__offer',function(data){
-        //desc.push(data);
+        desc.push(data);
         io.emit('join',data);
         //io.emit('answer',data);
     }) 
@@ -33,7 +36,18 @@ io.on('connection', function(socket){
         io.emit('join',data);
     }) 
 
+    socket.on('disconnect',function(){
+        console.log('123',socket.id)
+        desc.map(function(val,i){
+            if(val.data.id == socket.id){
+                desc.splice(i,1);
+            }
+        })
+    })
+
 });
+
+
 
 
 
