@@ -38,6 +38,8 @@
     //创建PeerConnection实例
     var pc = new PeerConnection(iceServer);
     //var pc = new PeerConnection(null);
+    var candidate;
+    var flag = true;
 
     socket.on('connected',function(data){
         socket.id = data.id;
@@ -46,12 +48,23 @@
 
     //发送ICE候选到其他客户端
     pc.onicecandidate = function(event){
-        socket.send(JSON.stringify({
-            "event": "__ice_candidate",
-            "data": {
-                "candidate": event.candidate
-            }
-        }));
+        if(flag){
+
+            console.log(123)
+            socket.emit('__ice_candidate',{
+                data:{
+                    id: socket.id,
+                    candidate: event.candidate
+                }
+            })
+
+        }
+        // socket.send(JSON.stringify({
+        //     "event": "__ice_candidate",
+        //     "data": {
+        //         "candidate": event.candidate
+        //     }
+        // }));
     };
     //如果检测到媒体流连接到本地，将其绑定到一个video标签上输出
     pc.onaddstream = function(event){
@@ -67,7 +80,6 @@
         //发送offer和answer的函数，发送本地session描述
         var sendOfferFn = function(desc){
                 pc.setLocalDescription(desc);
-                console.log('offer')
                 socket.emit('__offer',{
                     data: {
                         id: socket.id,
@@ -106,9 +118,10 @@
         //如果是发送方则发送一个offer信令，否则发送一个answer信令
         //if(true){
             pc.createOffer(sendOfferFn,function(err){console.log(err)});
-            socket.on('join',function(data){
+
+            socket.on('offer',function(data){
                 if(data.data.id != socket.id){
-                    console.log(data.data.sdp)
+                    console.log('offer')
                     //var remote_pc = new PeerConnection(iceServer);
                     pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp))
                     .then(function(resp){
@@ -117,6 +130,19 @@
                     .catch(function(err){
                         console.log(err)
                     })
+                }
+                
+                
+            })
+            socket.on('answer',function(data){
+                if(data.data.id != socket.id){
+                    console.log('answer')
+                    //var remote_pc = new PeerConnection(iceServer);
+                    pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp))
+                    // .then(function(resp){
+                    //     flag = false
+                    //     pc.addIceCandidate(new RTCIceCandidate(candidate));
+                    // })
                 }
                 
                 
@@ -141,15 +167,27 @@
         //处理媒体流创建失败错误
     });
     //处理到来的信令
-    socket.onmessage = function(event){
-        var json = JSON.parse(event.data);
-        //如果是一个ICE的候选，则将其加入到PeerConnection中，否则设定对方的session描述为传递过来的描述
-        if( json.event === "__ice_candidate" ){
-            pc.addIceCandidate(new RTCIceCandidate(json.data.candidate));
-        } else {
-             pc.setRemoteDescription(new RTCSessionDescription(json.data.sdp));
+    // socket.onmessage = function(event){
+    //     var json = JSON.parse(event.data);
+    //     //如果是一个ICE的候选，则将其加入到PeerConnection中，否则设定对方的session描述为传递过来的描述
+    //     if( json.event === "__ice_candidate" ){
+    //         pc.addIceCandidate(new RTCIceCandidate(json.data.candidate));
+    //     } else {
+    //          pc.setRemoteDescription(new RTCSessionDescription(json.data.sdp));
+    //     }
+    // };
+
+    socket.on('ice_candidate',function(data){
+        if(data.data.id != socket.id){
+            console.log(data.data.id,socket.id)
+                candidate = data.data.candidate;
+                flag = false
+            // setTimeout(function(){
+                 pc.addIceCandidate(new RTCIceCandidate(data.data.candidate));
+            // },2000)
         }
-    };
+        
+    });
 
     // socket.on('offer',function(data){
     //     console.log(data.data.sdp)

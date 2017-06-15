@@ -24,16 +24,19 @@ io.on('connection', function(socket){
         socket.emit('getDesc',desc);
     }
     
-
+    socket.on('__ice_candidate',function(data){
+        console.log(data.data)
+        io.emit('ice_candidate',data);
+    })
 
     socket.on('__offer',function(data){
         desc.push(data);
-        io.emit('join',data);
+        io.emit('offer',data);
         //io.emit('answer',data);
     }) 
 
     socket.on('__answer',function(data){
-        io.emit('join',data);
+        io.emit('answer',data);
     }) 
 
     socket.on('disconnect',function(){
