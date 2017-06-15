@@ -46,7 +46,6 @@
 
     //发送ICE候选到其他客户端
     pc.onicecandidate = function(event){
-        console.log(event)
         socket.send(JSON.stringify({
             "event": "__ice_candidate",
             "data": {
@@ -107,9 +106,10 @@
         //如果是发送方则发送一个offer信令，否则发送一个answer信令
         //if(true){
             pc.createOffer(sendOfferFn,function(err){console.log(err)});
-            socket.on('answer',function(data){
+            socket.on('join',function(data){
                 if(data.data.id != socket.id){
-                    console.log(data)
+                    console.log(data.data.sdp)
+                    //var remote_pc = new PeerConnection(iceServer);
                     pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp))
                     .then(function(resp){
                         pc.createAnswer(sendAnswerFn,function(err){console.log(err)});
@@ -139,12 +139,12 @@
         }
     };
 
-    socket.on('offer',function(data){
-        console.log(data.data.sdp)
-        if(data.data.id != socket.id){
-            pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
-        }
-    })
+    // socket.on('offer',function(data){
+    //     console.log(data.data.sdp)
+    //     if(data.data.id != socket.id){
+    //         pc.setRemoteDescription(new RTCSessionDescription(data.data.sdp));
+    //     }
+    // })
 
 
 
