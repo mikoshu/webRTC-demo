@@ -182,6 +182,9 @@
             console.log(data.data.id,socket.id)
                 candidate = data.data.candidate;
                 flag = false
+                if(!candidate){
+                    return
+                }
             // setTimeout(function(){
                  pc.addIceCandidate(new RTCIceCandidate(data.data.candidate));
             // },2000)

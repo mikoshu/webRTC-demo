@@ -178,10 +178,13 @@
     // };
 
     socket.on('ice_candidate',function(data){
-        if(data.data.id != socket.id){
+        if(data.data.id != socket.id ){
             console.log(data.data.id,socket.id)
                 candidate = data.data.candidate;
                 flag = false
+                if(!candidate){
+                    return
+                }
             // setTimeout(function(){
                  pc.addIceCandidate(new RTCIceCandidate(data.data.candidate))
                  .catch(function(err){
